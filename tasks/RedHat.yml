@@ -1,0 +1,26 @@
+---
+- name: copy nginx yum repo
+  become: yes
+  template:
+    src: nginx.repo.centos.ini
+    dest: /etc/yum.repos.d/nginx.repo
+- name: install nginx dependencies
+  become: yes
+  yum:
+    state: present
+    name: [
+      'pcre-devel',
+      'zlib-devel',
+      'openssl-devel',
+      'libxml2-devel',
+      'libxslt-devel',
+      'gd',
+      'gd-devel',
+      'perl-ExtUtils-Embed',
+      'GeoIP-devel',
+      'gperftools-devel'
+    ]
+  register: result
+  retries: 3
+  delay: 10
+  until: not result.failed

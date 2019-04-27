@@ -1,0 +1,108 @@
+---
+- include: Redhat.yml
+  when: ansible_os_family == 'RedHat'
+- include: Debian.yml
+  when: ansible_os_family == 'Debian'
+- name: download nginx
+  become: yes
+  unarchive:
+    src: https://nginx.org/download/nginx-{{ nginx_version }}.tar.gz
+    dest: /usr/local/src
+    remote_src: yes
+    owner: "{{ ansible_user }}"
+- name: check if previous nginx Makefile exists
+  stat:
+    path: /usr/local/src/nginx-{{ nginx_version }}/Makefile
+  register: nginx_makefile
+- name: make clean nginx
+  become: no
+  make:
+    target: clean
+  args:
+    chdir: /usr/local/src/nginx-{{ nginx_version }}
+  when: nginx_makefile.stat.exists
+- name: configure nginx
+  become: no
+  command: ./configure {{ nginx_configure_command }}
+  args:
+    chdir: /usr/local/src/nginx-{{ nginx_version }}
+  async: 1800
+  poll: 5
+  when: not nginx_with_passenger
+- name: configure nginx with passenger
+  become: no
+  command: bash -lc "rvmsudo ./configure --add-module=$(passenger-config --nginx-addon-dir) {{ nginx_configure_command }}"
+  args:
+    chdir: /usr/local/src/nginx-{{ nginx_version }}
+  async: 1800
+  poll: 5
+  when: nginx_with_passenger
+- name: chown nginx build directory
+  become: yes
+  file:
+    path: /usr/local/src/nginx-{{ nginx_version }}
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    recurse: yes
+- name: make nginx
+  become: no
+  make:
+    params:
+      MAKEFLAGS: -j{{ compile_threads }}
+      NUM_THREADS: "{{ compile_threads }}"
+  args:
+    chdir: /usr/local/src/nginx-{{ nginx_version }}
+  async: 1800
+  poll: 5
+- name: make install nginx
+  become: yes
+  make:
+    target: install
+  args:
+    chdir: /usr/local/src/nginx-{{ nginx_version }}
+  notify:
+    - restart nginx
+- name: create nginx directories
+  become: yes
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: nginx
+    group: nginx
+    mode: 0755
+  with_items:
+    - /var/lib/nginx/tmp/
+    - /var/log/nginx
+- name: install nginx service init.d
+  become: yes
+  template:
+    src: nginx.init.d.sh
+    dest: /etc/init.d/nginx
+    mode: 0755
+- name: install nginx logrotate
+  become: yes
+  template:
+    src: nginx.log.conf.ini
+    dest: /etc/logrotate.d/nginx
+    mode: 0644
+- name: chkconfig add nginx
+  become: yes
+  command: chkconfig --add nginx
+- name: chkconfig autostart nginx
+  become: yes
+  command: chkconfig nginx on
+- name: copy nginx error files
+  become: yes
+  template:
+    src: "{{ item }}"
+    dest: /usr/share/nginx/html/{{ item }}
+    mode: 0644
+  with_items:
+    - 50x.html
+    - 404.html
+- name: set nginx log folder to be readable
+  become: yes
+  file:
+    path: /var/log/nginx/
+    state: directory
+    mode: 0755

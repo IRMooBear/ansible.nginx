@@ -1,0 +1,15 @@
+---
+- name: copy nginx yum repo
+  become: yes
+  template:
+    src: nginx.repo.ami2.ini
+    dest: /etc/yum.repos.d/nginx.repo
+- name: yum install nginx
+  become: yes
+  yum:
+    state: present
+    name: nginx
+  register: result
+  retries: 3
+  delay: 10
+  until: not result.failed

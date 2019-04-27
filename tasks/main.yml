@@ -1,0 +1,82 @@
+---
+# tasks file for nginx
+- name: check nginx executable exists
+  stat:
+    path: /usr/sbin/nginx
+  register: nginx_executable
+- import_tasks: compile_nginx.yml
+  when: not nginx_executable.stat.exists and nginx_compile
+- import_tasks: install_from_binaries.yml
+  when: not nginx_executable.stat.exists and not nginx_compile
+- name: create nginx directories
+  become: yes
+  file:
+    path: /etc/nginx/{{ item }}
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+  with_items:
+    - conf.d
+    - modules-available
+    - modules-enabled
+    - sites-enabled
+    - sites-available
+    - ssl
+    - snippets
+- name: create nginx log directory
+  become: yes
+  file:
+    path: /var/log/nginx
+    state: directory
+    owner: nginx
+    group: nginx
+    mode: 0744
+- name: change nginx log files ownership
+  become: yes
+  file:
+    path: /var/log/nginx/
+    state: directory
+    owner: nginx
+    group: nginx
+    recurse: yes
+- name: check nginx DH key exists
+  stat:
+    path: /etc/nginx/ssl/dhparam2048.pem
+  register: nginx_dh_key
+- import_tasks: create_dhparam.yml
+  when: not nginx_dh_key.stat.exists
+- name: copy nginx error files
+  become: yes
+  template:
+    src: "{{ item }}"
+    dest: /usr/share/nginx/html/{{ item }}
+    mode: 0644
+  with_items:
+    - 404.html
+- name: copy nginx snippets
+  become: yes
+  template:
+    src: "{{ item }}.conf.ini"
+    dest: /etc/nginx/snippets/{{ item }}.conf
+    owner: root
+    group: root
+    mode: 0644
+  with_items:
+    - errors
+    - custom
+- name: copy default vhost
+  become: yes
+  template:
+    src: default.conf.ini
+    dest: /etc/nginx/sites-enabled/default.conf
+- name: copy nginx config file
+  become: yes
+  template:
+    src: nginx.conf.ini
+    dest: /etc/nginx/nginx.conf
+    mode: 0644
+    backup: yes
+    validate: /usr/sbin/nginx -t -c %s
+  notify:
+    - restart nginx

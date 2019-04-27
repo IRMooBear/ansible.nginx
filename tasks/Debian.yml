@@ -1,0 +1,29 @@
+---
+- name: apt install nginx dependencies
+  become: yes
+  apt:
+    state: present
+    name: [
+      'libpcre3',
+      'libpcre3-dev',
+      'libxml2',
+      'libxml2-dev',
+      'libxslt1.1',
+      'libxslt1-dev',
+      'libgd3',
+      'libgd-dev',
+      'libgeoip-dev',
+    ]
+  register: result
+  retries: 3
+  delay: 10
+  until: not result.failed
+- name: apt install nginx
+  become: yes
+  apt:
+    name: nginx-full
+    state: present
+  register: result
+  retries: 3
+  delay: 10
+  until: not result.failed

@@ -1,0 +1,6 @@
+---
+- name: generate random file
+  shell: head -128 /dev/urandom > /tmp/random
+- name: create nginx DH key
+  become: yes
+  command: openssl dhparam -rand /tmp/random -outform PEM -out /etc/nginx/ssl/dhparam2048.pem 2048
