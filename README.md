@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/IRMooBear/ansible.nginx.svg?branch=master)](https://travis-ci.org/IRMooBear/ansible.nginx_naxsi)
+
 Nginx
 =========
 This role install nginx on AMI and RPI from binary and create a common configuration scheme with folders following the debian setup scheme.
