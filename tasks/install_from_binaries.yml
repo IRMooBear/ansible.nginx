@@ -1,7 +1,7 @@
 ---
 - import_tasks: Debian.yml
   when: ansible_os_family == 'Debian'
-- import_tasks: Redhat.yml
+- import_tasks: RedHat.yml
   when: ansible_os_family == 'RedHat' and ansible_distribution != 'Amazon'
 - import_tasks: Amazon.yml
   when: ansible_os_family == 'RedHat' and ansible_distribution == 'Amazon'
