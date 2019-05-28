@@ -24,6 +24,7 @@
     - sites-available
     - ssl
     - snippets
+    - auth
 - name: create nginx log directory
   become: yes
   file:
@@ -48,28 +49,46 @@
   when: not nginx_dh_key.stat.exists
 - name: copy nginx error files
   become: yes
-  template:
-    src: "{{ item }}"
-    dest: /usr/share/nginx/html/{{ item }}
-    mode: 0644
-  with_items:
-    - 404.html
-- name: copy nginx snippets
-  become: yes
-  template:
-    src: "{{ item }}.conf.ini"
-    dest: /etc/nginx/snippets/{{ item }}.conf
+  copy:
+    src: "{{ item.src }}"
+    dest: /usr/share/nginx/html/{{ item.path }}
     owner: root
     group: root
     mode: 0644
-  with_items:
-    - errors
-    - custom
+  with_filetree: html/
+- name: copy nginx snippets files
+  become: yes
+  copy:
+    src: "{{ item.src }}"
+    dest: /etc/nginx/snippets/{{ item.path }}
+    owner: root
+    group: root
+    mode: 0644
+  with_filetree: snippets/
+- name: copy nginx auth files
+  become: yes
+  copy:
+    src: "{{ item.src }}"
+    dest: /etc/nginx/auth/{{ item.path }}
+    owner: root
+    group: root
+    mode: 0600
+  with_filetree: auth/
 - name: copy default vhost
   become: yes
   template:
     src: default.conf.ini
-    dest: /etc/nginx/sites-enabled/default.conf
+    dest: /etc/nginx/sites-available/default.conf
+- name: copy secure vhost
+  become: yes
+  template:
+    src: secure.conf.ini
+    dest: /etc/nginx/sites-available/secure.conf
+- name: copy block_wp_admin template
+  become: yes
+  template:
+    src: block_wp_admin.conf.ini
+    dest: /etc/nginx/snippets/block_wp_admin.conf
 - name: copy nginx config file
   become: yes
   template:
