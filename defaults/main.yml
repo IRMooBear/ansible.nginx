@@ -6,6 +6,7 @@ nginx_compile: false
 nginx_user: nginx
 nginx_group: nginx
 nginx_debian_release: stretch
+nginx_autostart: yes
 
 nginx_version: 1.15.9
 

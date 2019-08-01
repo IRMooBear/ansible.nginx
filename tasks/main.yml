@@ -72,7 +72,7 @@
     dest: /etc/nginx/auth/{{ item.path }}
     owner: root
     group: root
-    mode: 0600
+    mode: 0644
   with_filetree: auth/
 - name: copy default vhost
   become: yes
@@ -99,3 +99,16 @@
     validate: /usr/sbin/nginx -t -c %s
   notify:
     - restart nginx
+- name: set /var/www to be owned by nginx
+  become: yes
+  file:
+    path: /var/www
+    state: directory
+    owner: nginx
+    group: nginx
+    mode: 0775
+- name: service nginx autostart
+  become: yes
+  service:
+    name: nginx
+    enabled: "{{ nginx_autostart }}"
